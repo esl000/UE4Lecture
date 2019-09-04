@@ -9,6 +9,15 @@ AFountain::AFountain()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	Body = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Body"));
+	Water = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Water"));
+
+	//ConstructorHelpers::FObjectFinder<UStaticMesh> MeshAsset(TEXT("StaticMesh'/Game/MyMesh.MyMesh"));
+	
+	RootComponent = Body;
+	Water->SetupAttachment(Body);
+
+	Water->SetRelativeLocation(FVector(0.f, 0.f, 135.f));
 }
 
 // Called when the game starts or when spawned
