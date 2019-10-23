@@ -2,6 +2,7 @@
 
 
 #include "ABCharacter.h"
+#include "ABAnimInstance.h"
 
 // Sets default values
 AABCharacter::AABCharacter()
@@ -31,6 +32,23 @@ AABCharacter::AABCharacter()
 
 	if (WARRIROR_ANIM.Succeeded())
 		GetMesh()->SetAnimInstanceClass(WARRIROR_ANIM.Class);
+
+	SpringArm->TargetArmLength = 800.0f;
+	SpringArm->SetRelativeRotation(FRotator(-45.0f, 0.0f, 0.0f));
+
+	SpringArm->bUsePawnControlRotation = false;
+	SpringArm->bInheritPitch = false;
+	SpringArm->bInheritRoll = false;
+	SpringArm->bInheritYaw = false;
+	SpringArm->bDoCollisionTest = false;
+	SpringArm->bEnableCameraLag = true;
+	bUseControllerRotationYaw = false;
+
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+	GetCharacterMovement()->bUseControllerDesiredRotation = true;
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 360.0f, 0.0f);
+	GetCharacterMovement()->JumpZVelocity = 800.f;
+
 }
 
 // Called when the game starts or when spawned
@@ -42,19 +60,36 @@ void AABCharacter::BeginPlay()
 
 void AABCharacter::UpDown(float delta)
 {
-	AddMovementInput(GetActorForwardVector(), delta);
+	DirectionToMove.X = delta;
+	//AddMovementInput(GetActorForwardVector(), delta);
 }
 
 void AABCharacter::LeftRight(float delta)
 {
-	AddMovementInput(GetActorRightVector(), delta);
+	DirectionToMove.Y = delta;
+	//AddMovementInput(GetActorRightVector(), delta);
+}
+
+void AABCharacter::Attack()
+{
+	UE_LOG(ArenaBattle, Warning, TEXT("Attack"));
+	auto animIns = Cast<UABAnimInstance>(GetMesh()->GetAnimInstance());
+
+	if (animIns)
+	{
+		animIns->PlayAttackMontage();
+	}
 }
 
 // Called every frame
 void AABCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
+	if (DirectionToMove.SizeSquared() > 0.0f)
+	{
+		GetController()->SetControlRotation(FRotationMatrix::MakeFromX(DirectionToMove).Rotator());
+		AddMovementInput(DirectionToMove);
+	}
 }
 
 // Called to bind functionality to input
@@ -64,5 +99,7 @@ void AABCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 	PlayerInputComponent->BindAxis(TEXT("UpDown"), this, &AABCharacter::UpDown);
 	PlayerInputComponent->BindAxis(TEXT("LeftRight"), this, &AABCharacter::LeftRight);
+	PlayerInputComponent->BindAction(TEXT("Jump"), IE_Pressed, this, &AABCharacter::Jump);
+	PlayerInputComponent->BindAction(TEXT("Attack"), IE_Pressed, this, &AABCharacter::Attack);
 }
 

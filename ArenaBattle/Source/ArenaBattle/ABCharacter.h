@@ -21,12 +21,17 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	UCameraComponent* Camera;
 
+	UPROPERTY(VisibleAnywhere, Category = Movement)
+	FVector DirectionToMove;
+
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 	void UpDown(float delta);
 	void LeftRight(float delta);
+	void Attack();
 
 public:	
 	// Called every frame
