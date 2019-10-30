@@ -24,6 +24,19 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = Movement)
 	FVector DirectionToMove;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	bool IsAttacking;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	bool ISComboInputOn;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	bool CanNextCombo;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	int CurrentCombo;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	int MaxCombo;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	class UABAnimInstance* ABAnim;
 
 protected:
 	// Called when the game starts or when spawned
@@ -40,4 +53,12 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	virtual void PostInitializeComponents() override;
+
+	UFUNCTION()
+	void OnAttackMontageEnded(UAnimMontage* montage, bool bInterrupted);
+
+
+	void AttackStartComboState();
+	void AttackEndComboState();
 };

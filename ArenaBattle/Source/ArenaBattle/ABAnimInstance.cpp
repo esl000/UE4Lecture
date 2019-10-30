@@ -34,3 +34,26 @@ void UABAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		IsInAir = pawn->GetMovementComponent()->IsFalling();
 	}
 }
+
+void UABAnimInstance::JumpToAttackMontageSection(int32 newSection)
+{
+	ABCHECK(Montage_IsPlaying(AttackMontage));
+	Montage_JumpToSection(GetAttackMontageSectionName(newSection), AttackMontage);
+}
+
+void UABAnimInstance::AnimNotify_AttackHitCheck()
+{
+	ABLOG_S(Warning);
+	OnAttackHitDelegate.Broadcast();
+}
+
+void UABAnimInstance::AnimNotify_NextAttackCheck()
+{
+	OnNextAttackCheckDelegate.Broadcast();
+}
+
+FName UABAnimInstance::GetAttackMontageSectionName(int32 section)
+{
+	ABCHECK(FMath::IsWithinInclusive<int32>(section, 1, 4), NAME_None);
+	return FName(*FString::Printf(TEXT("Attack%d"), section));
+}

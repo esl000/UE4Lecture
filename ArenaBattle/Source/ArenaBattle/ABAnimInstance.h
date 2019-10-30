@@ -6,6 +6,10 @@
 #include "Animation/AnimInstance.h"
 #include "ABAnimInstance.generated.h"
 
+
+DECLARE_MULTICAST_DELEGATE(FOnNextAttackCheckDelegate);
+DECLARE_MULTICAST_DELEGATE(FOnAttackHitCheckDelegate);
+
 /**
  * 
  */
@@ -20,6 +24,10 @@ public:
 	void PlayAttackMontage();
 
 	virtual void NativeUpdateAnimation(float DeltaTimeX) override;
+	void JumpToAttackMontageSection(int32 newSection);
+
+	FOnAttackHitCheckDelegate OnAttackHitDelegate;
+	FOnNextAttackCheckDelegate OnNextAttackCheckDelegate;
 
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Pawn, Meta=(AllowPrivateAccess = true))
@@ -30,4 +38,11 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
 	UAnimMontage* AttackMontage;
+
+	UFUNCTION()
+	void AnimNotify_AttackHitCheck();
+	UFUNCTION()
+	void AnimNotify_NextAttackCheck();
+
+	FName GetAttackMontageSectionName(int32 section);
 };

@@ -44,11 +44,16 @@ AABCharacter::AABCharacter()
 	SpringArm->bEnableCameraLag = true;
 	bUseControllerRotationYaw = false;
 
+	GetCapsuleComponent()->SetCollisionProfileName(TEXT("ABCharacter"));
+
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->bUseControllerDesiredRotation = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 360.0f, 0.0f);
 	GetCharacterMovement()->JumpZVelocity = 800.f;
 
+
+	MaxCombo = 4;
+	AttackEndComboState();
 }
 
 // Called when the game starts or when spawned
@@ -72,12 +77,21 @@ void AABCharacter::LeftRight(float delta)
 
 void AABCharacter::Attack()
 {
-	UE_LOG(ArenaBattle, Warning, TEXT("Attack"));
-	auto animIns = Cast<UABAnimInstance>(GetMesh()->GetAnimInstance());
-
-	if (animIns)
+	if (IsAttacking)
 	{
-		animIns->PlayAttackMontage();
+		ABCHECK(FMath::IsWithinInclusive<int32>(CurrentCombo, 1, MaxCombo));
+		if (CanNextCombo)
+		{
+			ISComboInputOn = true;
+		}
+	}
+	else
+	{
+		ABCHECK(CurrentCombo == 0);
+		AttackStartComboState();
+		ABAnim->PlayAttackMontage();
+		ABAnim->JumpToAttackMontageSection(CurrentCombo);
+		IsAttacking = true;
 	}
 }
 
@@ -101,5 +115,48 @@ void AABCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAxis(TEXT("LeftRight"), this, &AABCharacter::LeftRight);
 	PlayerInputComponent->BindAction(TEXT("Jump"), IE_Pressed, this, &AABCharacter::Jump);
 	PlayerInputComponent->BindAction(TEXT("Attack"), IE_Pressed, this, &AABCharacter::Attack);
+}
+
+void AABCharacter::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	ABAnim = Cast<UABAnimInstance>(GetMesh()->GetAnimInstance());
+	ABCHECK(nullptr != ABAnim);
+
+	ABAnim->OnMontageEnded.AddDynamic(this, &AABCharacter::OnAttackMontageEnded);
+	ABAnim->OnNextAttackCheckDelegate.AddLambda([this](){
+		ABLOG(Warning, TEXT("OnNextAttackCheck"));
+		CanNextCombo = false;
+
+		if (ISComboInputOn)
+		{
+			AttackStartComboState();
+			ABAnim->JumpToAttackMontageSection(CurrentCombo);
+		}
+	});
+}
+
+void AABCharacter::OnAttackMontageEnded(UAnimMontage * montage, bool bInterrupted)
+{
+	ABCHECK(IsAttacking);
+	ABCHECK(CurrentCombo > 0);
+	IsAttacking = false;
+	AttackEndComboState();
+}
+
+void AABCharacter::AttackStartComboState()
+{
+	CanNextCombo = true;
+	ISComboInputOn = false;
+	ABCHECK(FMath::IsWithinInclusive<int32>(CurrentCombo, 0, MaxCombo - 1));
+	CurrentCombo = FMath::Clamp<int32>(CurrentCombo + 1, 1, MaxCombo);
+}
+
+void AABCharacter::AttackEndComboState()
+{
+	ISComboInputOn = false;
+	CanNextCombo = false;
+	CurrentCombo = 0;
 }
 
