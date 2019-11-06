@@ -5,6 +5,8 @@
 
 UABAnimInstance::UABAnimInstance()
 	: CurrentPawnSpeed(0.f)
+	, IsInAir(false)
+	, IsDead(false)
 {
 	static ConstructorHelpers::FObjectFinder<UAnimMontage>
 		ATTACK_MONTAGE(TEXT("AnimMontage'/Game/Book/Animations/SK_Mannequin_Skeleton_Montage.SK_Mannequin_Skeleton_Montage'"));
@@ -39,6 +41,11 @@ void UABAnimInstance::JumpToAttackMontageSection(int32 newSection)
 {
 	ABCHECK(Montage_IsPlaying(AttackMontage));
 	Montage_JumpToSection(GetAttackMontageSectionName(newSection), AttackMontage);
+}
+
+void UABAnimInstance::SetDeadAnim()
+{
+	IsDead = true;
 }
 
 void UABAnimInstance::AnimNotify_AttackHitCheck()

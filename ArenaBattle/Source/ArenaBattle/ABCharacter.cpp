@@ -3,6 +3,7 @@
 
 #include "ABCharacter.h"
 #include "ABAnimInstance.h"
+#include "DrawDebugHelpers.h"
 
 // Sets default values
 AABCharacter::AABCharacter()
@@ -32,6 +33,18 @@ AABCharacter::AABCharacter()
 
 	if (WARRIROR_ANIM.Succeeded())
 		GetMesh()->SetAnimInstanceClass(WARRIROR_ANIM.Class);
+	
+	FName WeaponSocket(TEXT("hand_rSocket"));
+	if (GetMesh()->DoesSocketExist(WeaponSocket))
+	{
+		Weapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Weapon"));
+		static ConstructorHelpers::FObjectFinder<USkeletalMesh> SM_WEAPON(TEXT("SkeletalMesh'/Game/InfinityBladeWeapons/Weapons/Blade/Swords/Blade_BlackKnight/SK_Blade_BlackKnight.SK_Blade_BlackKnight'"));
+
+		if (SM_WEAPON.Succeeded())
+			Weapon->SetSkeletalMesh(SM_WEAPON.Object);
+
+		Weapon->SetupAttachment(GetMesh(), WeaponSocket);
+	}
 
 	SpringArm->TargetArmLength = 800.0f;
 	SpringArm->SetRelativeRotation(FRotator(-45.0f, 0.0f, 0.0f));
@@ -54,6 +67,11 @@ AABCharacter::AABCharacter()
 
 	MaxCombo = 4;
 	AttackEndComboState();
+
+	AttackRange = 200.f;
+	AttackRadius = 50.f;
+
+	//ECC_GameTraceChannel2
 }
 
 // Called when the game starts or when spawned
@@ -126,7 +144,6 @@ void AABCharacter::PostInitializeComponents()
 
 	ABAnim->OnMontageEnded.AddDynamic(this, &AABCharacter::OnAttackMontageEnded);
 	ABAnim->OnNextAttackCheckDelegate.AddLambda([this](){
-		ABLOG(Warning, TEXT("OnNextAttackCheck"));
 		CanNextCombo = false;
 
 		if (ISComboInputOn)
@@ -135,6 +152,8 @@ void AABCharacter::PostInitializeComponents()
 			ABAnim->JumpToAttackMontageSection(CurrentCombo);
 		}
 	});
+
+	ABAnim->OnAttackHitDelegate.AddUObject(this, &AABCharacter::AttackCheck);
 }
 
 void AABCharacter::OnAttackMontageEnded(UAnimMontage * montage, bool bInterrupted)
@@ -158,5 +177,55 @@ void AABCharacter::AttackEndComboState()
 	ISComboInputOn = false;
 	CanNextCombo = false;
 	CurrentCombo = 0;
+}
+
+void AABCharacter::AttackCheck()
+{
+	FCollisionQueryParams params(NAME_None, false, this);
+	FHitResult hit;
+
+	bool bResult = GetWorld()->SweepSingleByChannel(hit, GetActorLocation(),
+		GetActorLocation() + GetActorForwardVector()* 200.f,
+		FQuat::Identity,
+		ECollisionChannel::ECC_GameTraceChannel2, FCollisionShape::MakeSphere(50.f),
+		params);
+
+#if ENABLE_DRAW_DEBUG
+	FVector TraceVec = GetActorForwardVector() * AttackRange;
+	FVector Center = GetActorLocation() + TraceVec * 0.5f;
+	float halfHeight = AttackRange * 0.5f + AttackRadius;
+	FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceVec).ToQuat();
+	FColor DrawColor = bResult ? FColor::Green : FColor::Red;
+	float DebugLifeTime = 5.f;
+
+	DrawDebugCapsule(GetWorld(),
+		Center,
+		halfHeight,
+		AttackRadius,
+		CapsuleRot,
+		DrawColor,
+		false,
+		DebugLifeTime);
+#endif
+
+	if (bResult)
+	{
+		if (hit.Actor.IsValid())
+		{
+			ABLOG_S(Warning);
+			FDamageEvent DamageEvent;
+			hit.Actor->TakeDamage(50.f, DamageEvent, GetController(), this);
+		}
+	}
+
+}
+
+float AABCharacter::TakeDamage(float DamageAmount, FDamageEvent const & DamageEvent, AController * EventInstigator, AActor * DamageCauser)
+{
+	float finalDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	ABLOG(Warning, TEXT("actor : %s took damage %f"), *DamageCauser->GetName(), finalDamage);
+	ABAnim->SetDeadAnim();
+	SetActorEnableCollision(false);
+	return finalDamage;
 }
 
