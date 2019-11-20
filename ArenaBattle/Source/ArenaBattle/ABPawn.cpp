@@ -2,7 +2,6 @@
 
 
 #include "ABPawn.h"
-#include "GameFramework/FloatingPawnMovement.h"
 
 // Sets default values
 AABPawn::AABPawn()
@@ -10,38 +9,37 @@ AABPawn::AABPawn()
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	Capsule = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Capsule"));
-	Body = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Body"));
-	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
-	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	Movement = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("Movement"));
+	Capsule = CreateDefaultSubobject<UCapsuleComponent>(TEXT("CAPSULE"));
+	Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MESH"));
+	Movement = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("MOVEMENT"));
+	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SPRINGARM"));
+	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("CAMERA"));
 
 	RootComponent = Capsule;
-
-	Body->SetupAttachment(Capsule);
+	Mesh->SetupAttachment(Capsule);
 	SpringArm->SetupAttachment(Capsule);
 	Camera->SetupAttachment(SpringArm);
 
-	Capsule->SetCapsuleHalfHeight(88.f);
-	Capsule->SetCapsuleRadius(34.f);
-	Body->SetRelativeLocationAndRotation(FVector(0.f, 0.f, -88.f), FRotator(0.f, -90.f, 0.f));
-	SpringArm->TargetArmLength = 400.f;
-	SpringArm->SetRelativeRotation(FRotator(-15.f, 0.f, 0.f));
+	Capsule->SetCapsuleHalfHeight(88.0f);
+	Capsule->SetCapsuleRadius(34.0f);
+	Mesh->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, -88.0f), FRotator(0.0f, -90.0f, 0.0f));
+	SpringArm->TargetArmLength = 400.0f;
+	SpringArm->SetRelativeRotation(FRotator(-15.0f, 0.0f, 0.0f));
 
 	Movement->MaxSpeed = 2400.f;
 	SpringArm->bEnableCameraLag = true;
 
-	static ConstructorHelpers::FObjectFinder<USkeletalMesh> SM_MESH(TEXT("/Game/InfinityBladeWarriors/Character/CompleteCharacters/SK_CharM_Warrior.SK_CharM_Warrior"));
-
-	if (SM_MESH.Succeeded())
-		Body->SetSkeletalMesh(SM_MESH.Object);
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> SK_CARDBOARD(TEXT("SkeletalMesh'/Game/InfinityBladeWarriors/Character/CompleteCharacters/SK_CharM_Cardboard.SK_CharM_Cardboard'"));
+	if (SK_CARDBOARD.Succeeded())
+	{
+		Mesh->SetSkeletalMesh(SK_CARDBOARD.Object);
+	}
 }
 
 // Called when the game starts or when spawned
 void AABPawn::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame
@@ -49,15 +47,6 @@ void AABPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-}
-
-// Called to bind functionality to input
-void AABPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-	PlayerInputComponent->BindAxis(TEXT("UpDown"), this, &AABPawn::UpDown);
-	PlayerInputComponent->BindAxis(TEXT("LeftRight"), this, &AABPawn::LeftRight);
 }
 
 void AABPawn::PostInitializeComponents()
@@ -72,13 +61,22 @@ void AABPawn::PossessedBy(AController * NewController)
 	Super::PossessedBy(NewController);
 }
 
-void AABPawn::LeftRight(float delta)
+// Called to bind functionality to input
+void AABPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
-	AddMovementInput(GetActorRightVector(), delta);
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	PlayerInputComponent->BindAxis(TEXT("UpDown"), this, &AABPawn::UpDown);
+	PlayerInputComponent->BindAxis(TEXT("LeftRight"), this, &AABPawn::LeftRight);
 }
 
-void AABPawn::UpDown(float delta)
+void AABPawn::UpDown(float NewAxisValue)
 {
-	AddMovementInput(GetActorForwardVector(), delta);
+	AddMovementInput(GetActorForwardVector(), NewAxisValue);
+}
+
+void AABPawn::LeftRight(float NewAxisValue)
+{
+	AddMovementInput(GetActorRightVector(), NewAxisValue);
 }
 

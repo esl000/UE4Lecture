@@ -14,12 +14,7 @@ class ARENABATTLE_API AABPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 	
-	
 public:
-	AABPlayerController();
-
-	//virtual void SetupInputComponent() override;
-
 	virtual void PostInitializeComponents() override;
 	virtual void OnPossess(APawn* aPawn) override;
 };
